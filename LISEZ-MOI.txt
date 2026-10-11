@@ -1,0 +1,16 @@
+ENCÉPHALE · version installable
+
+Ce dossier est une appli web complète (PWA). Pour l'installer sur ton téléphone, il faut d'abord la mettre en ligne. GitHub Pages est gratuit :
+
+1. Crée un compte sur github.com (ou connecte-toi).
+2. Crée un nouveau dépôt public, par exemple « encephale ».
+3. Dans le dépôt : « Add file » puis « Upload files ». Glisse TOUT le contenu de ce dossier (tous les fichiers), puis « Commit changes ».
+4. Dans « Settings », puis « Pages » : Source « Deploy from a branch », branche « main », dossier « / (root) », puis « Save ».
+5. Après une ou deux minutes, ton appli est en ligne à l'adresse https://TON-PSEUDO.github.io/encephale/
+
+Sur le téléphone :
+- iPhone : ouvre l'adresse dans Safari, bouton Partager, puis « Sur l'écran d'accueil ».
+- Android : ouvre l'adresse dans Chrome, menu ⋮, puis « Installer l'application ».
+
+Tes données restent sur ton téléphone. Pour récupérer ce que tu as déjà dans la version Claude :
+Système → Exporter dans la version Claude, puis Système → Importer un fichier dans l'appli.
