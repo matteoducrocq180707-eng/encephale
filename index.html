@@ -503,6 +503,8 @@ html.locked,html.locked body{overflow:hidden}
 .calm-btn:hover{background:rgba(234,241,255,.14)}
 .calm .calm-btn:focus-visible,.calm .calm-x:focus-visible{outline-color:#9fd3ff}
 
+.diag{position:fixed;left:8px;right:8px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:95;padding:10px 12px;border-radius:12px;background:#000;color:#9fffb0;font:11px/1.45 ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-all;pointer-events:none;box-shadow:0 10px 30px rgba(0,0,0,.6)}
+.diag button{pointer-events:auto;float:right;background:#222;color:#fff;border:1px solid #555;border-radius:8px;padding:4px 10px;font:inherit}
 #fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:90;display:none}
 #fx.on{display:block}
 .scrim{visibility:hidden;transition:opacity .3s,visibility 0s .3s}
@@ -2138,7 +2140,7 @@ function installPanel() {
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
   return `<section class="panel"><div class="eyebrow"><span class="soma"></span>Appli</div><h3>${standalone ? 'Encéphale est installée' : 'Installer sur cet appareil'}</h3>
-    ${standalone ? '<p>Tu l’utilises en mode appli. Elle fonctionne aussi sans connexion.</p>' : installEvt ? '<p>Ajoute Encéphale à ton écran d’accueil : elle s’ouvrira comme une appli, même hors ligne.</p><div class="row-flex"><button type="button" class="btn primary" data-act="install">Installer</button></div>' : ios ? '<p>Dans Safari, touche le bouton Partager, puis « Sur l’écran d’accueil ».</p>' : '<p>Dans le menu de ton navigateur, choisis « Installer l’application » ou « Ajouter à l’écran d’accueil ».</p>'}</section>`;
+    ${standalone ? '<p>Tu l’utilises en mode appli. Elle fonctionne aussi sans connexion.</p><div class="row-flex"><button type="button" class="btn small" data-act="diag">Diagnostic du toucher</button></div>' : installEvt ? '<p>Ajoute Encéphale à ton écran d’accueil : elle s’ouvrira comme une appli, même hors ligne.</p><div class="row-flex"><button type="button" class="btn primary" data-act="install">Installer</button></div>' : ios ? '<p>Dans Safari, touche le bouton Partager, puis « Sur l’écran d’accueil ».</p>' : '<p>Dans le menu de ton navigateur, choisis « Installer l’application » ou « Ajouter à l’écran d’accueil ».</p>'}</section>`;
 }
 async function exportData() {
   const json = JSON.stringify(S, null, 2), name = `encephale-${today()}.json`;
@@ -2729,6 +2731,31 @@ function toggleSound() {
 addEventListener('resize', () => { if (calmS.open) calmResize(); });
 document.addEventListener('fullscreenchange', () => { if (calmS.open) setTimeout(calmResize, 100); });
 
+
+/* ---------- touch diagnostic (for home-screen apps) ---------- */
+const diag = { on: false, log: [], ev: [] };
+const dsc = el => !el ? 'aucun' : (el.tagName || '?').toLowerCase() + (el.id ? '#' + el.id : '') + (el.classList && el.classList.length ? '.' + [...el.classList].slice(0, 2).join('.') : '');
+function renderDiag() {
+  let box = $('#diag');
+  if (!diag.on) { if (box) box.remove(); return; }
+  if (!box) { box = document.createElement('div'); box.id = 'diag'; box.className = 'diag'; document.body.appendChild(box); }
+  const ci = $('#cap-input'), cs = ci ? getComputedStyle(ci) : null, vv = window.visualViewport;
+  const info = `iOS ${((navigator.userAgent.match(/OS (\d+[_\d]*)/) || [])[1] || '?').replace(/_/g, '.')} · appli ${navigator.standalone === true ? 'oui' : 'non'} · mode ${matchMedia('(display-mode: standalone)').matches ? 'standalone' : 'navigateur'}\nécran ${innerWidth}×${innerHeight} · vv ${vv ? Math.round(vv.width) + '×' + Math.round(vv.height) + ' décalage ' + Math.round(vv.offsetTop) + ' zoom ' + vv.scale.toFixed(2) : '-'}\nchamp : select ${cs ? (cs.webkitUserSelect || cs.userSelect) : '-'} · pointer ${cs ? cs.pointerEvents : '-'} · rect ${ci ? Math.round(ci.getBoundingClientRect().top) + 'px' : '-'}`;
+  box.innerHTML = '<button type="button" id="diag-x">Fermer</button>';
+  box.appendChild(document.createTextNode(info + '\n' + (diag.log.length ? diag.log.map((l, i) => `#${i + 1} toucher (${l.x},${l.y}) cible ${l.tgt}\n   sous le doigt ${l.pt} · clic ${l.click || 'non'} · focus ${l.act || '…'}`).join('\n') : 'Touche maintenant « Capture une pensée ».') + (diag.ev.length ? '\névénements : ' + diag.ev.slice(-6).join(' › ') : '')));
+  $('#diag-x').onclick = () => { diag.on = false; renderDiag(); };
+}
+document.addEventListener('touchstart', e => {
+  if (!diag.on || (e.target && e.target.id === 'diag-x')) return;
+  const t = e.touches[0]; const ent = { tgt: dsc(e.target), x: Math.round(t.clientX), y: Math.round(t.clientY), pt: dsc(document.elementFromPoint(t.clientX, t.clientY)), act: '', click: '' };
+  diag.log.unshift(ent); diag.log.length = Math.min(diag.log.length, 3); diag.ev = ['touchstart'];
+  setTimeout(() => { ent.act = dsc(document.activeElement); renderDiag(); }, 600);
+  renderDiag();
+}, { passive: true, capture: true });
+['touchend', 'mousedown', 'click', 'focusin', 'focusout'].forEach(n => document.addEventListener(n, e => {
+  if (!diag.on) return; diag.ev.push(n + ':' + dsc(e.target).split('.')[0]);
+  if (n === 'click' && diag.log[0]) diag.log[0].click = dsc(e.target);
+}, { passive: true, capture: true }));
 /* ================= drawer (editor for any item) ================= */
 let drawerId = null, drawerPrevFocus = null;
 function openDrawer(id) {
@@ -2921,6 +2948,7 @@ const ACT = {
     toast('Cerveau effacé', 'Annuler', () => { S = prev; S.meta.updated = Date.now(); commit(); });
   },
   'wipe-cancel': () => { stemState.confirmWipe = false; renderStem(); },
+  'diag': () => { diag.on = true; diag.log = []; diag.ev = []; renderDiag(); go('cerveau'); toast('Touche le champ « Capture une pensée », puis fais une capture d’écran'); },
   'ex-restore': () => { restoreExamples(); toast('Exemples remis dans toutes les régions'); },
   'install': async () => { if (!installEvt) return; installEvt.prompt(); try { await installEvt.userChoice; } catch (e) {} installEvt = null; renderStem(); },
   'pause-quick': () => startPause(),
