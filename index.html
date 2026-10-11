@@ -12,7 +12,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Encéphale">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <script>window.ENCEPHALE_PWA = true;</script>
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}.statusbar{position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:35}</style>
 <title>Encéphale</title>
@@ -503,7 +503,13 @@ html.locked,html.locked body{overflow:hidden}
 .calm-btn:hover{background:rgba(234,241,255,.14)}
 .calm .calm-btn:focus-visible,.calm .calm-x:focus-visible{outline-color:#9fd3ff}
 
-#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:90}
+#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:90;display:none}
+#fx.on{display:block}
+.scrim{visibility:hidden;transition:opacity .3s,visibility 0s .3s}
+.scrim.open{visibility:visible;transition:opacity .3s}
+.drawer{visibility:hidden;transition:transform .42s cubic-bezier(.2,.85,.2,1),visibility 0s .42s}
+.drawer.open{visibility:visible;transition:transform .42s cubic-bezier(.2,.85,.2,1)}
+@media (display-mode: standalone){.capture,.tabbar,.blabel{-webkit-backdrop-filter:none;backdrop-filter:none}.capture{background:var(--bg)}.tabbar{background:var(--bg-1)}}
 .tabbar{display:none}
 
 @media (max-width:1180px){ .home-hero{grid-template-columns:1fr} .signals{grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))} }
@@ -528,6 +534,7 @@ html.locked,html.locked body{overflow:hidden}
   .cap-send{margin-left:auto;padding:10px 12px}
   .kind-btn{padding:8px 9px}
   .cap-hint{display:none}
+  .input{font-size:16px}
   .cap-preview{min-height:0}
   .brain-wrap{aspect-ratio:1.05/1;min-height:0}
   .blabel{font-size:11px;padding:4px 8px 4px 7px;gap:5px}
@@ -1081,9 +1088,9 @@ const FX = (() => {
       x.beginPath(); x.arc(p.x, p.y, p.r, 0, TAU); x.stroke();
     }
     x.globalCompositeOperation = 'source-over';
-    if (!spikes.length && !parts.length && !rings.length) { x.clearRect(0, 0, W, H); running = false; removeAnim(tick); }
+    if (!spikes.length && !parts.length && !rings.length) { x.clearRect(0, 0, W, H); running = false; c.classList.remove('on'); removeAnim(tick); }
   }
-  function start() { if (!running) { running = true; addAnim(tick); } }
+  function start() { if (!running) { running = true; c.classList.add('on'); addAnim(tick); } }
   function spike(a, b, color, onArrive, dur) {
     if (calm()) { if (onArrive) onArrive(); return; }
     const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy) || 1;
@@ -2992,6 +2999,10 @@ document.addEventListener('click', e => {
   if (fn) { e.preventDefault(); fn(host ? host.dataset.id : null, a, e); }
 });
 $('#scrim').addEventListener('click', closeDrawer);
+document.addEventListener('touchend', e => {
+  const t = e.target && e.target.closest && e.target.closest('textarea, input:not([type=checkbox]):not([type=radio]):not([type=date]):not([type=file]):not([type=range])');
+  if (t && !t.disabled && !t.readOnly && document.activeElement !== t) t.focus();
+}, { passive: true });
 $('#palette').addEventListener('click', e => { if (e.target.id === 'palette') closePalette(); });
 $('#pal-input').addEventListener('input', () => { palSel = 0; renderPalette(); });
 $('#pal-input').addEventListener('keydown', e => {
